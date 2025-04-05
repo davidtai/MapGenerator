@@ -26,7 +26,7 @@ interface Intersection {
  */
 export class Node {
     public segments = new Set<Segment>();
-    public adj: Node[];
+    public adj: Node[] = [];
 
     constructor(public value: Vector, public neighbors=new Set<Node>()) {}
 

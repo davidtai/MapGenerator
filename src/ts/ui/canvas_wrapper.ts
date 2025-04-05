@@ -28,8 +28,10 @@ export default abstract class CanvasWrapper {
     protected _height: number;
     public needsUpdate: boolean = false;
 
-    constructor(private canvas: HTMLCanvasElement, protected _scale=1, resizeToWindow=true) {
-        this.setDimensions();
+    constructor(private canvas: HTMLCanvasElement, protected _scale=1, resizeToWindow=true) {  
+        this._width = window.innerWidth * this._scale;
+        this._height = window.innerHeight * this._scale;
+        
         this.resizeCanvas();
         if (resizeToWindow) {
             window.addEventListener('resize', (): void => {
@@ -92,7 +94,7 @@ export class DefaultCanvasWrapper extends CanvasWrapper {
 
     constructor(canvas: HTMLCanvasElement, scale=1, resizeToWindow=true) {
         super(canvas, scale, resizeToWindow);
-        this.ctx = canvas.getContext("2d");
+        this.ctx = canvas.getContext("2d") as CanvasRenderingContext2D; // assume it never fails
         this.ctx.fillStyle = 'black';
         this.ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
     }

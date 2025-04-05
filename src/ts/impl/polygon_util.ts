@@ -141,7 +141,7 @@ export default class PolygonUtil {
     public static resizeGeometry(geometry: Vector[], spacing: number, isPolygon=true): Vector[] {
         try {
             const jstsGeometry = isPolygon? PolygonUtil.polygonToJts(geometry) : PolygonUtil.lineToJts(geometry);
-            const resized = jstsGeometry.buffer(spacing, undefined, (jsts as any).operation.buffer.BufferParameters.CAP_FLAT);
+            const resized = jstsGeometry.buffer(spacing, 0, (jsts as any).operation.buffer.BufferParameters.CAP_FLAT);
             if (!resized.isSimple()) {
                 return [];
             }

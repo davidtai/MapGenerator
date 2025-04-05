@@ -19,9 +19,9 @@ export default class PolygonFinder {
     private _shrunkPolygons: Vector[][] = [];
     private _dividedPolygons: Vector[][] = [];
     private toShrink: Vector[][] = [];
-    private resolveShrink: () => void;
+    private resolveShrink: (() => void) | undefined;
     private toDivide: Vector[][] = [];
-    private resolveDivide: () => void;
+    private resolveDivide: (() => void) | undefined;
 
     constructor(private nodes: Node[], private params: PolygonParams, private tensorField: TensorField) {}
 
@@ -49,20 +49,20 @@ export default class PolygonFinder {
         let change = false;
         if (this.toShrink.length > 0) {
             const resolve = this.toShrink.length === 1;
-            if (this.stepShrink(this.toShrink.pop())) {
+            if (this.stepShrink(this.toShrink.pop() ?? [])) {
                 change = true;
             }
             
-            if (resolve) this.resolveShrink();
+            if (resolve && this.resolveShrink) this.resolveShrink();
         }
 
         if (this.toDivide.length > 0) {
             const resolve = this.toDivide.length === 1;
-            if (this.stepDivide(this.toDivide.pop())) {
+            if (this.stepDivide(this.toDivide.pop() ?? [])) {
                 change = true;
             }
 
-            if (resolve) this.resolveDivide();
+            if (resolve && this.resolveDivide) this.resolveDivide();
         }
         return change;
     }
@@ -197,7 +197,7 @@ export default class PolygonFinder {
         }
     }
 
-    private recursiveWalk(visited: Node[], count=0): Node[] {
+    private recursiveWalk(visited: Node[], count=0): Node[] | null {
         if (count >= this.params.maxLength) return null;
         // TODO backtracking to find polygons with dead end roads inside them
         const nextNode = this.getRightmostNode(visited[visited.length - 2], visited[visited.length - 1]);
@@ -214,7 +214,7 @@ export default class PolygonFinder {
         }
     }
 
-    private getRightmostNode(nodeFrom: Node, nodeTo: Node): Node {
+    private getRightmostNode(nodeFrom: Node, nodeTo: Node): Node | null {
         // We want to turn right at every junction
         if (nodeTo.adj.length === 0) return null;
 

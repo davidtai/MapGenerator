@@ -13,8 +13,8 @@ export abstract class BasisField {
     abstract readonly FOLDER_NAME: string;
     abstract readonly FIELD_TYPE: number;
     protected static folderNameIndex: number = 0;
-    protected parentFolder: dat.GUI;
-    protected folder: dat.GUI;
+    protected parentFolder: dat.GUI | undefined;
+    protected folder: dat.GUI | undefined;
     protected _centre: Vector;
 
     constructor(centre: Vector, protected _size: number, protected _decay: number) {
@@ -53,16 +53,16 @@ export abstract class BasisField {
     }
 
     setFolder(): void {
-        if (this.parentFolder.__folders) {
+        if (this.parentFolder?.__folders) {
             for (const folderName in this.parentFolder.__folders) {
                 this.parentFolder.__folders[folderName].close();
             }
-            this.folder.open();
+            this.folder?.open();
         }
     }
 
     removeFolderFromParent(): void {
-        if (this.parentFolder.__folders && Object.values(this.parentFolder.__folders).indexOf(this.folder) >= 0) {
+        if (this.parentFolder?.__folders && this.folder && Object.values(this.parentFolder.__folders).indexOf(this.folder) >= 0) {
             this.parentFolder.removeFolder(this.folder);
         }
     }
@@ -75,8 +75,8 @@ export abstract class BasisField {
         this.folder = folder;
         folder.add(this._centre, 'x');
         folder.add(this._centre, 'y');
-        folder.add(this, '_size');
-        folder.add(this, '_decay', -50, 50);
+        folder.add(this, '_size' as any);
+        folder.add(this, '_decay' as any, -50, 50);
     }
 
     /**

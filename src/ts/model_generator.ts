@@ -23,14 +23,12 @@ export default class ModelGenerator {
     private zip: any;
     private state: ModelGeneratorStates = ModelGeneratorStates.WAITING;
 
-    private groundMesh: THREE.Mesh;
-    private groundBsp: CSG;
+    private groundMesh: THREE.Mesh | undefined;
     private polygonsToProcess: Vector[][] = [];
     private roadsGeometry = new THREE.Geometry();
     private blocksGeometry = new THREE.Geometry();
-    private roadsBsp: CSG;
     private buildingsGeometry = new THREE.Geometry();
-    private buildingsToProcess: BuildingModel[];
+    private buildingsToProcess: BuildingModel[] = [];
 
 
     constructor(private ground: Vector[],
@@ -52,7 +50,6 @@ export default class ModelGenerator {
             this.zip.file("model/README.txt", "For a tutorial on putting these models together to create a city, go to https://maps.probabletrain.com/#/stl");
 
             this.groundMesh = this.polygonToMesh(this.ground, this.groundLevel);
-            this.groundBsp = CSG.fromMesh(this.groundMesh);
             this.setState(ModelGeneratorStates.SUBTRACT_OCEAN);
         });
     }
@@ -114,8 +111,8 @@ export default class ModelGenerator {
                 }
 
                 const road = this.polygonsToProcess.pop();
-                const roadsMesh = this.polygonToMesh(road, 0);
-                this.roadsGeometry.merge(roadsMesh.geometry as THREE.Geometry, this.groundMesh.matrix);
+                const roadsMesh = this.polygonToMesh(road ?? [], 0);
+                this.roadsGeometry.merge(roadsMesh.geometry as THREE.Geometry, this.groundMesh?.matrix);
                 break;
             }
             case ModelGeneratorStates.ADD_BLOCKS: {
@@ -131,8 +128,8 @@ export default class ModelGenerator {
                 }
 
                 const block = this.polygonsToProcess.pop();
-                const blockMesh = this.polygonToMesh(block, 1);
-                this.blocksGeometry.merge(blockMesh.geometry as THREE.Geometry, this.groundMesh.matrix);
+                const blockMesh = this.polygonToMesh(block ?? [], 1);
+                this.blocksGeometry.merge(blockMesh.geometry as THREE.Geometry, this.groundMesh?.matrix);
                 break;
             }
             case ModelGeneratorStates.ADD_BUILDINGS: {
@@ -146,8 +143,10 @@ export default class ModelGenerator {
                 }
 
                 const b = this.buildingsToProcess.pop();
-                const buildingMesh = this.polygonToMesh(b.lotScreen, b.height);
-                this.buildingsGeometry.merge(buildingMesh.geometry as THREE.Geometry, this.groundMesh.matrix);
+                if (b) {
+                  const buildingMesh = this.polygonToMesh(b.lotScreen, b.height);
+                  this.buildingsGeometry.merge(buildingMesh.geometry as THREE.Geometry, this.groundMesh?.matrix);
+                }
                 break;
             }
             case ModelGeneratorStates.CREATE_ZIP: {
@@ -176,7 +175,7 @@ export default class ModelGenerator {
     private polygonToMesh(polygon: Vector[], height: number): THREE.Mesh {
         if (polygon.length < 3) {
             log.error("Tried to export empty polygon as OBJ");
-            return null;
+            throw new Error("Tried to export empty polygon as OBJ")
         }
         const shape = new THREE.Shape();
         shape.moveTo(polygon[0].x, polygon[0].y);

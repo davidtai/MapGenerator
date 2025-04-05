@@ -170,7 +170,7 @@ export default class Util {
         return m1;
     }
 
-    static parseCSSColor(css_str: string): number[] {
+    static parseCSSColor(css_str: string): number[] | null {
         // Remove all whitespace, not compliant, but should just be more accepting.
         var str = css_str.replace(/ /g, '').toLowerCase();
 
@@ -206,7 +206,7 @@ export default class Util {
             switch (fname) {
                 case 'rgba':
                     if (params.length !== 4) return null;
-                    alpha = Util.parse_css_float(params.pop());
+                    alpha = Util.parse_css_float(params.pop() as string);
                     // Fall through.
                 case 'rgb':
                     if (params.length !== 3) return null;
@@ -216,7 +216,7 @@ export default class Util {
                             alpha];
                     case 'hsla':
                     if (params.length !== 4) return null;
-                    alpha = Util.parse_css_float(params.pop());
+                    alpha = Util.parse_css_float(params.pop() as string);
                     // Fall through.
                 case 'hsl':
                     if (params.length !== 3) return null;

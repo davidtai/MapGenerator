@@ -65,26 +65,28 @@ export default class WaterGenerator extends StreamlineGenerator {
         for (let i = 0; i < this.TRIES; i++) {
             major = Math.random() < 0.5;
             seed = this.getSeed(major);
-            coastStreamline = this.extendStreamline(this.integrateStreamline(seed, major));
+            if (seed) {
+              coastStreamline = this.extendStreamline(this.integrateStreamline(seed, major));
 
-            if (this.reachesEdges(coastStreamline)) {
-                break;
+              if (this.reachesEdges(coastStreamline)) {
+                  break;
+              }
             }
         }
         this.tensorField.disableGlobalNoise();
 
-        this._coastline = coastStreamline;
-        this.coastlineMajor = major;
+        this._coastline = coastStreamline ?? [];
+        this.coastlineMajor = major ?? false;
 
-        const road = this.simplifyStreamline(coastStreamline);
+        const road = this.simplifyStreamline(coastStreamline ?? []);
         this._seaPolygon = this.getSeaPolygon(road);
         this.allStreamlinesSimple.push(road);
         this.tensorField.sea = (this._seaPolygon);
 
         // Create intermediate samples
         const complex = this.complexifyStreamline(road);
-        this.grid(major).addPolyline(complex);
-        this.streamlines(major).push(complex);
+        this.grid(major ?? false).addPolyline(complex);
+        this.streamlines(major ?? false).push(complex);
         this.allStreamlines.push(complex);
     }
 
@@ -100,28 +102,33 @@ export default class WaterGenerator extends StreamlineGenerator {
         }        
         for (let i = 0; i < this.TRIES; i++) {
             seed = this.getSeed(!this.coastlineMajor);
-            riverStreamline = this.extendStreamline(this.integrateStreamline(seed, !this.coastlineMajor));
+            if (seed) {
+              riverStreamline = this.extendStreamline(this.integrateStreamline(seed, !this.coastlineMajor));
 
-            if (this.reachesEdges(riverStreamline)) {
-                break;
-            } else if (i === this.TRIES - 1) {
-                log.error('Failed to find river reaching edge');
+              if (this.reachesEdges(riverStreamline)) {
+                  break;
+              } else if (i === this.TRIES - 1) {
+                  log.error('Failed to find river reaching edge');
+              }
             }
         }
         this.tensorField.sea = oldSea;
         this.tensorField.disableGlobalNoise();
 
         // Create river roads
-        const expandedNoisy = this.complexifyStreamline(PolygonUtil.resizeGeometry(riverStreamline, this.params.riverSize, false));
-        this._riverPolygon = PolygonUtil.resizeGeometry(riverStreamline, this.params.riverSize - this.params.riverBankSize, false);
+        const expandedNoisy = this.complexifyStreamline(PolygonUtil.resizeGeometry(riverStreamline ?? [], this.params.riverSize, false));
+        this._riverPolygon = PolygonUtil.resizeGeometry(riverStreamline ?? [], this.params.riverSize - this.params.riverBankSize, false);
         // Make sure riverPolygon[0] is off screen
         const firstOffScreen = expandedNoisy.findIndex(v => this.vectorOffScreen(v));
         for (let i = 0; i < firstOffScreen; i++) {
-            expandedNoisy.push(expandedNoisy.shift());
+            let n = expandedNoisy.shift()
+            if (n) {
+              expandedNoisy.push(n);
+            }
         }
 
         // Create river roads
-        const riverSplitPoly = this.getSeaPolygon(riverStreamline);
+        const riverSplitPoly = this.getSeaPolygon(riverStreamline ?? []);
         const road1 = expandedNoisy.filter(v =>
             !PolygonUtil.insidePolygon(v, this._seaPolygon)
             && !this.vectorOffScreen(v)

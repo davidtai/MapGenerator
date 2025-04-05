@@ -1,5 +1,5 @@
 import * as log from 'loglevel';
-import * as simplify from 'simplify-js';
+import simplify from 'simplify-js';
 import Vector from '../vector';
 import GridStorage from './grid_storage';
 import FieldIntegrator from './integrator';
@@ -49,7 +49,7 @@ export default class StreamlineGenerator {
     protected candidateSeedsMinor: Vector[] = [];
 
     protected streamlinesDone = true;
-    protected resolve: () => void;
+    protected resolve: (() => void) | undefined;
     protected lastStreamlineMajor = true;
 
     public allStreamlines: Vector[][] = [];
@@ -79,7 +79,12 @@ export default class StreamlineGenerator {
         this.majorGrid = new GridStorage(this.worldDimensions, this.origin, params.dsep);
         this.minorGrid = new GridStorage(this.worldDimensions, this.origin, params.dsep);
 
-        this.setParamsSq();
+        this.paramsSq = Object.assign({}, this.params);
+        for (const p in this.paramsSq) {
+            if (typeof this.paramsSq[p] === "number") {
+                this.paramsSq[p] *= this.paramsSq[p];
+            }
+        }
     }
 
     clearStreamlines(): void {
@@ -102,7 +107,7 @@ export default class StreamlineGenerator {
                 }
 
                 const newStart = this.getBestNextPoint(streamline[0], streamline[4], streamline)
-                if (newStart !== null) {
+                if (newStart) {
                     for (const p of this.pointsBetween(streamline[0], newStart, this.params.dstep)) {
                         streamline.unshift(p);
                         this.grid(major).addSample(p);
@@ -156,7 +161,7 @@ export default class StreamlineGenerator {
      * Gets next best point to join streamline
      * returns null if there are no good candidates
      */
-    getBestNextPoint(point: Vector, previousPoint: Vector, streamline: Vector[]): Vector {
+    getBestNextPoint(point: Vector, previousPoint: Vector, streamline: Vector[]): Vector | null {
         const nearbyPoints = this.majorGrid.getNearbyPoints(point, this.params.dlookahead);
         nearbyPoints.push(...this.minorGrid.getNearbyPoints(point, this.params.dlookahead));
         const direction = point.clone().sub(previousPoint);
@@ -221,7 +226,9 @@ export default class StreamlineGenerator {
             this.lastStreamlineMajor = !this.lastStreamlineMajor;
             if (!this.createStreamline(this.lastStreamlineMajor)) {
                 this.streamlinesDone = true;
-                this.resolve();
+                if (this.resolve) {
+                  this.resolve();
+                }
             }
             return true;
         }
@@ -306,12 +313,12 @@ export default class StreamlineGenerator {
     /**
      * Tries this.candidateSeeds first, then samples using this.samplePoint
      */
-    protected getSeed(major: boolean): Vector {
+    protected getSeed(major: boolean): Vector | null {
         // Candidate seeds first
         if (this.SEED_AT_ENDPOINTS && this.candidateSeeds(major).length > 0) {
             while (this.candidateSeeds(major).length > 0) {
                 const seed = this.candidateSeeds(major).pop();
-                if (this.isValidSample(major, seed, this.paramsSq.dsep)) {
+                if (seed && this.isValidSample(major, seed, this.paramsSq.dsep)) {
                     return seed;
                 }
             }

@@ -1,7 +1,6 @@
-import * as log from 'loglevel';
 import interact from 'interactjs';
 import Util from '../util';
-import Vector from '../Vector';
+import Vector from '../vector';
 import DomainController from './domain_controller';
 
 interface Draggable {
@@ -20,7 +19,7 @@ export default class DragController {
     private readonly MIN_DRAG_DISTANCE = 50;
 
     private draggables: Draggable[] = [];
-    private currentlyDragging: Draggable = null;  // Tensor field
+    private currentlyDragging: Draggable | null= null;  // Tensor field
     private _isDragging = false;
     private disabled: boolean = false;
     private domainController = DomainController.getInstance();
@@ -64,12 +63,10 @@ export default class DragController {
         const scaledDragDistance = this.MIN_DRAG_DISTANCE / this.domainController.zoom;
 
         if (closestDistance > scaledDragDistance) {
-            this.currentlyDragging = null;
-        } else {
-            this.currentlyDragging.startListener();
+          this.currentlyDragging = null;
+        } else if(!!this.currentlyDragging) {
+          this.currentlyDragging.startListener();
         }
-
-
     }
 
     dragMove(event: any): void {

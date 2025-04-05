@@ -39,7 +39,7 @@ export interface ColourScheme {
  * Controls how screen-space data is drawn
  */
 export default abstract class Style {
-    protected canvas: CanvasWrapper;
+    protected canvas: CanvasWrapper | undefined;
     protected domainController: DomainController = DomainController.getInstance();
     public abstract createCanvasWrapper(c: HTMLCanvasElement, scale: number, resizeToWindow: boolean): CanvasWrapper;
     public abstract draw(canvas?: CanvasWrapper): void;
@@ -60,7 +60,7 @@ export default abstract class Style {
     public majorRoads: Vector[][] = [];
     public mainRoads: Vector[][] = [];
     public coastlineRoads: Vector[][] = [];
-    public showFrame: boolean;
+    public showFrame: boolean | undefined;
 
     constructor(protected dragController: DragController, protected colourScheme: ColourScheme) {
         if (!colourScheme.bgColour) log.error("ColourScheme Error - bgColour not defined");
@@ -88,7 +88,7 @@ export default abstract class Style {
         if (!colourScheme.frameTextColour) colourScheme.frameTextColour = colourScheme.minorRoadOutline;
 
         if (!colourScheme.buildingSideColour) {
-            const parsedRgb = Util.parseCSSColor(colourScheme.buildingColour).map(v => Math.max(0, v - 40));
+            const parsedRgb = (Util.parseCSSColor(colourScheme.buildingColour ?? '') ?? []).map(v => Math.max(0, v - 40));
             if (parsedRgb) {
                 colourScheme.buildingSideColour = `rgb(${parsedRgb[0]},${parsedRgb[1]},${parsedRgb[2]})`;
             } else {
@@ -106,19 +106,19 @@ export default abstract class Style {
     }
 
     public get showBuildingModels(): boolean {
-        return this.colourScheme.buildingModels;
+        return this.colourScheme.buildingModels ?? false;
     }
 
     public set canvasScale(scale: number) {
-        this.canvas.canvasScale = scale;
+        this.canvas && (this.canvas.canvasScale = scale);
     }
 
     public get needsUpdate(): boolean {
-        return this.canvas.needsUpdate;
+        return this.canvas?.needsUpdate ?? false;
     }
 
     public set needsUpdate(n: boolean) {
-        this.canvas.needsUpdate = n;
+        this.canvas && (this.canvas.needsUpdate = n);
     }
 }
 
@@ -141,7 +141,7 @@ export class DefaultStyle extends Style {
         }
         
 
-        canvas.setFillStyle(bgColour);
+        canvas.setFillStyle(bgColour ?? '');
         canvas.clearCanvas();
 
         // Sea
@@ -151,13 +151,13 @@ export class DefaultStyle extends Style {
         canvas.drawPolygon(this.seaPolygon);
 
         // Coastline
-        canvas.setStrokeStyle(bgColour);
+        canvas.setStrokeStyle(bgColour ?? '');
         canvas.setLineWidth(30 * this.domainController.zoom);
         canvas.drawPolyline(this.coastline);
 
         // Parks
         canvas.setLineWidth(1);
-        canvas.setFillStyle(this.colourScheme.grassColour);
+        canvas.setFillStyle(this.colourScheme.grassColour ?? '');
         for (const p of this.parks) canvas.drawPolygon(p);
 
         // River
@@ -167,32 +167,32 @@ export class DefaultStyle extends Style {
         canvas.drawPolygon(this.river);
 
         // Road outline
-        canvas.setStrokeStyle(this.colourScheme.minorRoadOutline);
-        canvas.setLineWidth(this.colourScheme.outlineSize + this.colourScheme.minorWidth * this.domainController.zoom);
+        canvas.setStrokeStyle(this.colourScheme.minorRoadOutline ?? '');
+        canvas.setLineWidth((this.colourScheme.outlineSize ?? 1) + (this.colourScheme.minorWidth ?? 1) * this.domainController.zoom);
         for (const s of this.minorRoads) canvas.drawPolyline(s);
 
-        canvas.setStrokeStyle(this.colourScheme.majorRoadOutline);
-        canvas.setLineWidth(this.colourScheme.outlineSize + this.colourScheme.majorWidth * this.domainController.zoom);
+        canvas.setStrokeStyle(this.colourScheme.majorRoadOutline ?? '');
+        canvas.setLineWidth((this.colourScheme.outlineSize ?? 1) + (this.colourScheme.minorWidth ?? 1) * this.domainController.zoom);
         for (const s of this.majorRoads) canvas.drawPolyline(s);
         canvas.drawPolyline(this.secondaryRiver);
 
-        canvas.setStrokeStyle(this.colourScheme.mainRoadOutline);
-        canvas.setLineWidth(this.colourScheme.outlineSize + this.colourScheme.mainWidth * this.domainController.zoom);
+        canvas.setStrokeStyle(this.colourScheme.mainRoadOutline ?? '');
+        canvas.setLineWidth((this.colourScheme.outlineSize ?? 1) + (this.colourScheme.minorWidth ?? 1) * this.domainController.zoom);
         for (const s of this.mainRoads) canvas.drawPolyline(s);
         for (const s of this.coastlineRoads) canvas.drawPolyline(s);
 
         // Road inline
         canvas.setStrokeStyle(this.colourScheme.minorRoadColour);
-        canvas.setLineWidth(this.colourScheme.minorWidth * this.domainController.zoom);
+        canvas.setLineWidth((this.colourScheme.minorWidth ?? 1) * this.domainController.zoom);
         for (const s of this.minorRoads) canvas.drawPolyline(s);
 
-        canvas.setStrokeStyle(this.colourScheme.majorRoadColour);
-        canvas.setLineWidth(this.colourScheme.majorWidth * this.domainController.zoom);
+        canvas.setStrokeStyle(this.colourScheme.majorRoadColour ?? '');
+        canvas.setLineWidth((this.colourScheme.majorWidth ?? 1) * this.domainController.zoom);
         for (const s of this.majorRoads) canvas.drawPolyline(s);
         canvas.drawPolyline(this.secondaryRiver);
 
-        canvas.setStrokeStyle(this.colourScheme.mainRoadColour);
-        canvas.setLineWidth(this.colourScheme.mainWidth * this.domainController.zoom);
+        canvas.setStrokeStyle(this.colourScheme.mainRoadColour ?? '');
+        canvas.setLineWidth((this.colourScheme.mainWidth ?? 1)* this.domainController.zoom);
         for (const s of this.mainRoads) canvas.drawPolyline(s);
         for (const s of this.coastlineRoads) canvas.drawPolyline(s);
 
@@ -203,7 +203,7 @@ export class DefaultStyle extends Style {
             for (const b of this.buildingModels) {
                 // Colour based on height
 
-                const parsedRgb = Util.parseCSSColor(this.colourScheme.bgColour).map(v => Math.min(255, v + (b.height * 3.5)));
+                const parsedRgb = (Util.parseCSSColor(this.colourScheme.bgColour ?? '') ?? []).map(v => Math.min(255, v + (b.height * 3.5)));
                 canvas.setFillStyle(`rgb(${parsedRgb[0]},${parsedRgb[1]},${parsedRgb[2]})`);
                 canvas.setStrokeStyle(`rgb(${parsedRgb[0]},${parsedRgb[1]},${parsedRgb[2]})`);
                 canvas.drawPolygon(b.lotScreen);
@@ -211,30 +211,30 @@ export class DefaultStyle extends Style {
         } else {
             // Buildings
             if (!this.colourScheme.zoomBuildings || this.domainController.zoom >= 2) {
-                canvas.setFillStyle(this.colourScheme.buildingColour);
-                canvas.setStrokeStyle(this.colourScheme.buildingStroke);
+                canvas.setFillStyle(this.colourScheme.buildingColour ?? '');
+                canvas.setStrokeStyle(this.colourScheme.buildingStroke ?? '');
                 for (const b of this.lots) canvas.drawPolygon(b);
             }
 
             // Pseudo-3D
             if (this.colourScheme.buildingModels && (!this.colourScheme.zoomBuildings || this.domainController.zoom >= 2.5)) {
-                canvas.setFillStyle(this.colourScheme.buildingSideColour);
-                canvas.setStrokeStyle(this.colourScheme.buildingSideColour);
+                canvas.setFillStyle(this.colourScheme.buildingSideColour ?? '');
+                canvas.setStrokeStyle(this.colourScheme.buildingSideColour ?? '');
 
                 // This is a cheap approximation that often creates visual artefacts
                 // Draws building sides, then rooves instead of properly clipping polygons etc.
                 for (const b of this.buildingModels) {
                     for (const s of b.sides) canvas.drawPolygon(s);
                 }
-                canvas.setFillStyle(this.colourScheme.buildingColour);
-                canvas.setStrokeStyle(this.colourScheme.buildingStroke);
+                canvas.setFillStyle(this.colourScheme.buildingColour ?? '');
+                canvas.setStrokeStyle(this.colourScheme.buildingStroke ?? '');
                 for (const b of this.buildingModels) canvas.drawPolygon(b.roof);
             }
         }
 
         if (this.showFrame) {
-            canvas.setFillStyle(this.colourScheme.frameColour);
-            canvas.setStrokeStyle(this.colourScheme.frameColour);
+            canvas.setFillStyle(this.colourScheme.frameColour ?? '');
+            canvas.setStrokeStyle(this.colourScheme.frameColour ?? '');
             canvas.drawFrame(30, 30, 30, 30);
 
             // canvas.setFillStyle(this.colourScheme.frameTextColour);
@@ -257,7 +257,7 @@ export class RoughStyle extends Style {
 
     public update() {
         const dragging = this.dragController.isDragging || this.domainController.isScrolling;
-        if (!dragging && this.dragging) this.canvas.needsUpdate = true;
+        if (!dragging && this.dragging) this.canvas && (this.canvas.needsUpdate = true);
         this.dragging = dragging;
     }
 
